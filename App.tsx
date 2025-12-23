@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { initializeApp } from 'firebase/app';
 import { getFirestore, doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
 import TypewriterEffect from './components/TypewriterEffect';
@@ -6,9 +7,9 @@ import FeatureGrid from './components/FeatureGrid';
 import WhatsAppButton from './components/WhatsAppButton';
 import AdminPanel from './components/AdminPanel';
 import AdminLogin from './components/AdminLogin';
-import GeminiChat from './components/GeminiChat';
-import { SAWA_CONTENT, REWARD_DATA } from './constants';
-import { SawaContentState } from './types';
+import LanguageSwitcher from './components/LanguageSwitcher';
+import { SAWA_CONTENT_LOCALIZED, REWARD_DATA } from './constants';
+import { SawaContentState, Language } from './types';
 
 // Firebase Configuration
 const firebaseConfig = {
@@ -25,14 +26,15 @@ const db = getFirestore(app);
 const CONTENT_DOC_ID = 'main_content';
 
 const INITIAL_STATE: SawaContentState = {
-  mainContent: SAWA_CONTENT,
+  mainContent: SAWA_CONTENT_LOCALIZED.ar,
   stats: REWARD_DATA,
   appIcon: null,
   appLink: null,
-  whatsappNumber: "393921700020"
+  whatsappNumber: "8613147065068"
 };
 
 const App: React.FC = () => {
+  const [lang, setLang] = useState<Language>('ar');
   const [content, setContent] = useState<SawaContentState>(INITIAL_STATE);
   const [loading, setLoading] = useState(true);
   const [typingComplete, setTypingComplete] = useState(false);
@@ -41,6 +43,13 @@ const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isAdminPanelOpen, setIsAdminPanelOpen] = useState(false);
   const [contentKey, setContentKey] = useState(0); 
+
+  useEffect(() => {
+    // Sync HTML attributes with current language
+    const dir = lang === 'ar' ? 'rtl' : 'ltr';
+    document.documentElement.dir = dir;
+    document.documentElement.lang = lang;
+  }, [lang]);
 
   useEffect(() => {
     const contentRef = doc(db, "settings", CONTENT_DOC_ID);
@@ -63,15 +72,18 @@ const App: React.FC = () => {
       if (docSnap.exists()) {
         const newData = docSnap.data() as SawaContentState;
         setContent(prev => {
-          if (prev.mainContent !== newData.mainContent) {
-            setTypingComplete(false);
-            setContentKey(k => k + 1);
-          }
           return { ...INITIAL_STATE, ...newData };
         });
       }
     });
   }, []);
+
+  const displayContent = lang === 'ar' ? content.mainContent : (SAWA_CONTENT_LOCALIZED[lang] || content.mainContent);
+
+  useEffect(() => {
+    setTypingComplete(false);
+    setContentKey(prev => prev + 1);
+  }, [lang]);
 
   useEffect(() => {
     if (typingComplete) {
@@ -102,7 +114,9 @@ const App: React.FC = () => {
   );
 
   return (
-    <div className="min-h-screen relative bg-[#0a0f1e] selection:bg-cyan-500 selection:text-white overflow-x-hidden">
+    <div className={`min-h-screen relative bg-[#0a0f1e] selection:bg-cyan-500 selection:text-white overflow-x-hidden ${lang === 'ar' ? 'font-cairo' : 'font-sans'}`}>
+      <LanguageSwitcher currentLang={lang} onLangChange={setLang} />
+      
       <main className="relative z-10 max-w-5xl mx-auto px-4 py-8 md:py-20 flex flex-col items-center gap-8">
         <header className="text-center space-y-6 flex flex-col items-center">
           <div className="flex flex-col items-center gap-4">
@@ -117,11 +131,11 @@ const App: React.FC = () => {
         </header>
 
         <div className="w-full glass rounded-2xl p-5 md:p-12 border border-white/10 min-h-[300px]">
-          <TypewriterEffect key={contentKey} text={content.mainContent} onComplete={() => setTypingComplete(true)} />
+          <TypewriterEffect key={contentKey} text={displayContent} onComplete={() => setTypingComplete(true)} />
         </div>
 
         <div className={`w-full transition-all duration-1000 ${typingComplete ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
-          <FeatureGrid stats={content.stats} />
+          <FeatureGrid stats={content.stats} lang={lang} />
         </div>
 
         <footer className="text-slate-500 text-[10px] py-10 text-center w-full mt-8 border-t border-white/5">
@@ -129,12 +143,11 @@ const App: React.FC = () => {
            <button onClick={() => isAuthenticated ? setIsAdminPanelOpen(true) : setIsAdminLoginOpen(true)} className="mt-4 p-2 opacity-30 hover:opacity-100 transition-opacity">⚙️</button>
         </footer>
       </main>
+
       {showContact && (
-        <>
-          <WhatsAppButton phoneNumber={content.whatsappNumber || INITIAL_STATE.whatsappNumber!} />
-          <GeminiChat context={content.mainContent} />
-        </>
+        <WhatsAppButton phoneNumber={content.whatsappNumber || INITIAL_STATE.whatsappNumber!} lang={lang} />
       )}
+
       {isAdminLoginOpen && <AdminLogin onLogin={handleAdminAuth} onClose={() => setIsAdminLoginOpen(false)} />}
       {isAdminPanelOpen && <AdminPanel content={content} onSave={handleSave} onClose={() => setIsAdminPanelOpen(false)} onReset={() => {}} />}
     </div>

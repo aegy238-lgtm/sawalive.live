@@ -1,4 +1,6 @@
 
+export type Language = 'ar' | 'en' | 'fr' | 'de' | 'it' | 'es' | 'pt' | 'ru';
+
 export interface ChatMessage {
   role: 'user' | 'model';
   text: string;
@@ -16,7 +18,13 @@ export interface SawaInfo {
 export interface SawaContentState {
   mainContent: string;
   stats: SawaInfo;
-  appIcon: string | null; // Base64 string for the app icon
-  appLink: string | null; // URL for the application
-  whatsappNumber: string | null; // WhatsApp contact number
+  appIcon: string | null;
+  appLink: string | null;
+  whatsappNumber: string | null;
+}
+
+export interface Translations {
+  [key: string]: {
+    [lang in Language]: string;
+  };
 }
