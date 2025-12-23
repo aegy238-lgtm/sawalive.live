@@ -1,0 +1,84 @@
+
+import React, { useState } from 'react';
+
+interface Props {
+  onLogin: (success: boolean) => void;
+  onClose: () => void;
+}
+
+const AdminLogin: React.FC<Props> = ({ onLogin, onClose }) => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+
+  // Credentials (Can be moved to Firestore later for more security)
+  const ADMIN_EMAIL = "admin@sawalive.com";
+  const ADMIN_PASS = "SawaAdmin2025";
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (email === ADMIN_EMAIL && password === ADMIN_PASS) {
+      onLogin(true);
+    } else {
+      setError('بيانات الدخول غير صحيحة');
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-300">
+      <div className="glass w-full max-w-md rounded-[2.5rem] border border-white/20 shadow-2xl overflow-hidden p-8 text-right" dir="rtl">
+        <div className="flex justify-between items-center mb-8">
+          <h2 className="text-2xl font-black text-cyan-400">تسجيل دخول المشرف</h2>
+          <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="space-y-2">
+            <label className="block text-sm font-bold text-slate-300 mr-2">البريد الإلكتروني</label>
+            <input 
+              type="email" 
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="admin@example.com"
+              className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-sm focus:ring-2 focus:ring-cyan-500/50 outline-none transition-all dir-ltr text-left"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label className="block text-sm font-bold text-slate-300 mr-2">كلمة المرور</label>
+            <input 
+              type="password" 
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
+              className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-sm focus:ring-2 focus:ring-cyan-500/50 outline-none transition-all dir-ltr text-left"
+            />
+          </div>
+
+          {error && (
+            <p className="text-red-400 text-xs font-bold animate-bounce pr-2">⚠️ {error}</p>
+          )}
+
+          <button 
+            type="submit"
+            className="w-full bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-black py-4 rounded-2xl transition-all active:scale-95 shadow-lg shadow-cyan-600/20 mt-4"
+          >
+            دخول للوحة التحكم
+          </button>
+        </form>
+
+        <p className="text-center text-[10px] text-slate-500 mt-8">
+          هذه المنطقة مخصصة لإدارة SAWA LIVE فقط.
+        </p>
+      </div>
+    </div>
+  );
+};
+
+export default AdminLogin;

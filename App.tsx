@@ -6,6 +6,7 @@ import TypewriterEffect from './components/TypewriterEffect';
 import FeatureGrid from './components/FeatureGrid';
 import WhatsAppButton from './components/WhatsAppButton';
 import AdminPanel from './components/AdminPanel';
+import AdminLogin from './components/AdminLogin'; // New Import
 import { SAWA_CONTENT, REWARD_DATA } from './constants';
 import { SawaContentState } from './types';
 
@@ -37,7 +38,9 @@ const App: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [typingComplete, setTypingComplete] = useState(false);
   const [showContact, setShowContact] = useState(false);
-  const [isAdminOpen, setIsAdminOpen] = useState(false);
+  const [isAdminLoginOpen, setIsAdminLoginOpen] = useState(false); // Auth Modal
+  const [isAuthenticated, setIsAuthenticated] = useState(false); // Auth State
+  const [isAdminPanelOpen, setIsAdminPanelOpen] = useState(false); // Admin Panel Modal
   const [contentKey, setContentKey] = useState(0); 
   const mainRef = useRef<HTMLDivElement>(null);
 
@@ -45,7 +48,6 @@ const App: React.FC = () => {
   useEffect(() => {
     const contentRef = doc(db, "settings", CONTENT_DOC_ID);
 
-    // Initial fetch from Cloud
     const fetchContent = async () => {
       try {
         const docSnap = await getDoc(contentRef);
@@ -56,7 +58,6 @@ const App: React.FC = () => {
             ...data
           } as SawaContentState);
         } else {
-          // Default initialization on first run
           await setDoc(contentRef, INITIAL_STATE);
         }
       } catch (e) {
@@ -68,7 +69,6 @@ const App: React.FC = () => {
 
     fetchContent();
 
-    // Listen for live updates (Real-time synchronization)
     const unsubscribe = onSnapshot(contentRef, (docSnap) => {
       if (docSnap.exists()) {
         const newData = docSnap.data() as SawaContentState;
@@ -92,10 +92,17 @@ const App: React.FC = () => {
     }
   }, [typingComplete]);
 
+  const handleAdminAuth = (success: boolean) => {
+    if (success) {
+      setIsAuthenticated(true);
+      setIsAdminLoginOpen(false);
+      setIsAdminPanelOpen(true);
+    }
+  };
+
   const handleSave = async (newContent: SawaContentState) => {
     try {
       const contentRef = doc(db, "settings", CONTENT_DOC_ID);
-      // Data scrubbing to prevent 'undefined' errors in Firestore
       const cleanContent = {
         mainContent: newContent.mainContent || INITIAL_STATE.mainContent,
         stats: newContent.stats || INITIAL_STATE.stats,
@@ -104,7 +111,7 @@ const App: React.FC = () => {
         whatsappNumber: newContent.whatsappNumber || null
       };
       await setDoc(contentRef, cleanContent);
-      setIsAdminOpen(false);
+      setIsAdminPanelOpen(false);
     } catch (e) {
       console.error("Failed to save to Firestore", e);
       alert("حدث خطأ أثناء الحفظ في السحابة");
@@ -116,7 +123,7 @@ const App: React.FC = () => {
       try {
         const contentRef = doc(db, "settings", CONTENT_DOC_ID);
         await setDoc(contentRef, INITIAL_STATE);
-        setIsAdminOpen(false);
+        setIsAdminPanelOpen(false);
       } catch (e) {
         alert("فشل في إعادة تعيين البيانات");
       }
@@ -220,7 +227,10 @@ const App: React.FC = () => {
            </div>
            
            <button 
-            onClick={() => setIsAdminOpen(true)}
+            onClick={() => {
+              if (isAuthenticated) setIsAdminPanelOpen(true);
+              else setIsAdminLoginOpen(true);
+            }}
             className="p-3 hover:bg-white/5 rounded-full transition-all hover:rotate-90 group"
             title="لوحة التحكم"
            >
@@ -234,11 +244,20 @@ const App: React.FC = () => {
 
       {showContact && <WhatsAppButton phoneNumber={content.whatsappNumber || INITIAL_STATE.whatsappNumber!} />}
 
-      {isAdminOpen && (
+      {/* Admin Login Modal */}
+      {isAdminLoginOpen && (
+        <AdminLogin 
+          onLogin={handleAdminAuth} 
+          onClose={() => setIsAdminLoginOpen(false)} 
+        />
+      )}
+
+      {/* Admin Panel Modal */}
+      {isAdminPanelOpen && (
         <AdminPanel 
           content={content} 
           onSave={handleSave} 
-          onClose={() => setIsAdminOpen(false)}
+          onClose={() => setIsAdminPanelOpen(false)}
           onReset={handleReset}
         />
       )}
